@@ -6,4 +6,4 @@
 
 using EntityArray = QVector<A3DEntity*>;
 
-void forEach_RepresentationItem( EntityArray const &path, std::function<void(EntityArray const&)> const &fcn );
+void forEach_RepresentationItem(A3DAsmModelFile* model_file, std::function<void(EntityArray const&)> const &fcn );

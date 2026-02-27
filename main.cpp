@@ -4,7 +4,8 @@
 #include <Qt3DCore>
 #include <Qt3DExtras>
 #include <QtWidgets>
-
+#include <string>
+#include <hoops_license.h>
 #include "Scene.h"
 #include "Transform.h"
 
@@ -19,9 +20,14 @@ int main(int argc, char *argv[]) {
 
     // Load and license HOOPS Exchange
 #ifdef _MSC_VER
-    auto loader = std::make_unique<A3DSDKHOOPSExchangeLoader>( qUtf16Printable( exchange_bin_dir ) );
+    // On MSVC the constructor expects a TCHAR* (wide on Unicode builds).
+    std::wstring exchangeBinPathW = exchange_bin_dir.toStdWString();
+   
+    auto loader = std::make_unique<A3DSDKHOOPSExchangeLoader>( (TCHAR*)exchangeBinPathW.c_str(), HOOPS_LICENSE );
 #else
-    auto loader = std::make_unique<A3DSDKHOOPSExchangeLoader>( qUtf8Printable( exchange_bin_dir ) );
+    // On non-MSVC builds the constructor expects UTF8 char pointers.
+    std::string exchangeBinPath = exchange_bin_dir.toStdString();
+    auto loader = std::make_unique<A3DSDKHOOPSExchangeLoader>( exchangeBinPath.c_str(), nullptr );
 #endif
 
     if(!loader->m_bSDKLoaded) {
@@ -105,8 +111,10 @@ int main(int argc, char *argv[]) {
     
     // Add camera controls
     Qt3DExtras::QOrbitCameraController *camController = new Qt3DExtras::QOrbitCameraController(scene);
-    camController->setLinearSpeed( 50.0f );
-    camController->setLookSpeed( 180.0f );
+    // Increase interaction speeds (pan/zoom and rotation) for a snappier feel
+    float scale = qMax(1.0f, 2.0f); // 防止太小
+    camController->setLinearSpeed( scale * 200.0f );   // 平移/缩放速度
+    camController->setLookSpeed(  scale * 360.0f );    // 旋转速度
     camController->setCamera(camera);
 
     view.show();
