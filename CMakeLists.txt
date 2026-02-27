@@ -8,7 +8,7 @@ project(qt_he_viewer VERSION 1.0.0 LANGUAGES CXX)
 #######################################################
 if(MSVC)
   # This is the location of your Windows HOOPS Exchange installation
-  set(HOOPS_EXCHANGE_DIR "X:/HOOPS_Exchange_Publish_2021_SP2_U2")
+  set(HOOPS_EXCHANGE_DIR "D:\\Data\\ref\\HOOPS_Exchange_Publish_2025.4.0_Win_VS2019\\HOOPS_Exchange_Publish_2025.4.0")
 else(MSVC)
   if(APPLE)
     # This is the location of your macOS HOOPS Exchange installation
@@ -22,7 +22,7 @@ endif(MSVC)
 
 
 if(MSVC)
-  set(exchange_arch "win64_v140")
+  set(exchange_arch "win64_v142")
 else(MSVC)
   if(APPLE)
     set(exchange_arch "macos")
@@ -41,27 +41,35 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt6 COMPONENTS Core)
-find_package(Qt6 COMPONENTS Gui)
-find_package(Qt6 COMPONENTS Widgets)
-find_package(Qt6 COMPONENTS 3DCore)
-find_package(Qt6 COMPONENTS 3DRender)
-find_package(Qt6 COMPONENTS 3DInput)
-find_package(Qt6 COMPONENTS 3DExtras)
-find_package(Qt6 COMPONENTS Concurrent)
+find_package(Qt5 COMPONENTS Core)
+find_package(Qt5 COMPONENTS Gui)
+find_package(Qt5 COMPONENTS Widgets)
+find_package(Qt5 COMPONENTS 3DCore)
+find_package(Qt5 COMPONENTS 3DRender)
+find_package(Qt5 COMPONENTS 3DInput)
+find_package(Qt5 COMPONENTS 3DExtras)
+find_package(Qt5 COMPONENTS Concurrent)
 
 add_executable(qt_he_viewer main.cpp ForEachRepresentationItem.cpp Mesh.cpp Scene.cpp Material.cpp Transform.cpp)
 
-
-target_link_libraries(qt_he_viewer PUBLIC
-    Qt::3DCore
-    Qt::3DExtras
-    Qt::3DInput
-    Qt::3DRender
-    Qt::Core
-    Qt::Gui
-    Qt::Widgets
-)
+set(QT_VERSION_MAJOR 5)
+ target_link_libraries(qt_he_viewer PUBLIC
+ Qt${QT_VERSION_MAJOR}::Widgets
+ Qt${QT_VERSION_MAJOR}::3DCore
+ Qt${QT_VERSION_MAJOR}::3DExtras
+ Qt${QT_VERSION_MAJOR}::3DInput
+ Qt${QT_VERSION_MAJOR}::3DRender
+ Qt${QT_VERSION_MAJOR}::Core
+ Qt${QT_VERSION_MAJOR}::Gui
+  
+  #  Qt::3DCore
+  #  Qt::3DExtras
+  #  Qt::3DInput
+   # Qt::3DRender
+  #  Qt::Core
+  #  Qt::Gui
+  #  Qt::Widgets
+ )
 
 include_directories("${HOOPS_EXCHANGE_DIR}/include")
 
