@@ -96,13 +96,13 @@ namespace {
                 fcn( path );
             }
         }
-
+		// 每次递归调用时，都会将当前节点的子节点添加到路径中，并继续遍历子节点的子节点，直到遍历完整个树结构。
         for( auto child : children ) {
             auto child_path = path;
             child_path.push_back( child );
             forEach_Impl( child_path, fcn );
         }
-    }
+    } 
 }
 
 void forEach_RepresentationItem( A3DAsmModelFile *model_file, std::function<void(EntityArray const&)> const &fcn ) {

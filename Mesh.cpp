@@ -1,7 +1,10 @@
 #include <Qt3DRender>
 #include "Mesh.h"
 #include <Qt3dRender/qbuffer.h>
-
+#include <iostream>
+#include <map>
+#include <set>
+#include <cstring>
 using namespace Qt3DCore;
 using namespace Qt3DRender;
 
@@ -36,6 +39,7 @@ Qt3DCore::QComponent *createMesh( A3DTessBase *tess_base ) {
    
     QVector<quint32> q_indices;
     QByteArray bufferBytes;
+    std::vector<float> bufferData;
     quint32 const stride = sizeof(float) * 6;
     // 解释以下for循环中代码
 	// 该循环遍历了所有的面片索引，并根据面片的类型（是否为三角形）来处理顶点数据。对于每个面片，如果它是三角形，则会计算出三角形的数量，
@@ -44,7 +48,24 @@ Qt3DCore::QComponent *createMesh( A3DTessBase *tess_base ) {
     // 并调整字节数组的大小以容纳这些顶点的数据。然后，内层循环遍历每个三角形的三个顶点，提取对应的坐标和法线索引，并将它们转换为实际的坐标和法线值，
     // 存储在字节数组中。同时，记录每个顶点的索引，以便后续构建索引缓冲区。
 	// 该循环的目的是将面片数据转换为适合渲染的格式，特别是将三角形面片的数据提取出来，并准备好顶点缓冲区和索引缓冲区，以便在渲染时使用。
-    
+    int nCount = 0;
+    typedef std::pair< std::uint32_t, std::uint32_t> VertexKey;
+    std::map<VertexKey, quint32> vertexMap;  // 键到新顶点索引的映射
+    quint32 nextVertexIndex = 0;           // 下一个可用的新顶点索引
+    int maxV = -1;
+    int maxN = -1;
+	int minV = std::numeric_limits<int>::max();
+	int minN = std::numeric_limits<int>::max();
+	std::cout << "m_uiTriangulatedIndexSiz" << t3dd.m_uiTriangulatedIndexSize << std::endl;
+	std::set<int> uniqueVertices; // 用于存储唯一的顶点索引
+	std::set<int> uniqueNormals;  // 用于存储唯一的法线索引
+	for (int i = 0; i < int(t3dd.m_uiTriangulatedIndexSize); i=i+2) {
+		uniqueNormals.insert(t3dd.m_puiTriangulatedIndexes[i ]);
+        uniqueVertices.insert(t3dd.m_puiTriangulatedIndexes[i + 1]);
+    }
+	std::cout << "Unique vertex indices: " << uniqueVertices.size() << std::endl;
+	std::cout << "Unique normal indices: " << uniqueNormals.size() << std::endl;
+
 	for (auto tess_face_idx = 0u; tess_face_idx < t3dd.m_uiFaceTessSize; ++tess_face_idx) { // 遍历所有的面片索引
 		A3DTessFaceData const& d = t3dd.m_psFaceTessData[tess_face_idx]; // 获取当前面片的数据
         auto sz_tri_idx = 0u;
@@ -60,29 +81,74 @@ Qt3DCore::QComponent *createMesh( A3DTessBase *tess_base ) {
 					auto const& normal_index = t3dd.m_puiTriangulatedIndexes[ti_index++]; // 获取当前顶点的法线索引
 					auto const& coord_index = t3dd.m_puiTriangulatedIndexes[ti_index++];  // 获取当前顶点的坐标索引
                     // 
-                    *fptr++ = coords[coord_index];
-                    *fptr++ = coords[coord_index+1];
-                    *fptr++ = coords[coord_index+2];
-                    *fptr++ = normals[normal_index];
-                    *fptr++ = normals[normal_index+1];
-                    *fptr++ = normals[normal_index+2];
-                    q_indices.push_back( q_indices.size() );
+
+                    quint32 vertexIndex;
+                   
+                  
+                    VertexKey key(coord_index, normal_index);
+				    std::cout << "key: ("  << coord_index << ", " << normal_index << ")" << std::endl;
+					if (maxV < int(coord_index))
+                        maxV = coord_index;
+					if (maxN < int(normal_index))
+						maxN = normal_index;
+					if (minV > int(coord_index))
+						minV = coord_index;
+					if (minN > int(normal_index))
+                        minN = normal_index;
+
+                    auto it = vertexMap.find(key);
+                    if (it == vertexMap.end())
+                    {
+                        vertexIndex = nextVertexIndex++;
+                        vertexMap.insert(std::make_pair(key, vertexIndex));
+
+                        *fptr++ = coords[coord_index];
+                        *fptr++ = coords[coord_index + 1];
+                        *fptr++ = coords[coord_index + 2];
+                        *fptr++ = normals[normal_index];
+                        *fptr++ = normals[normal_index + 1];
+                        *fptr++ = normals[normal_index + 2];
+
+						bufferData.push_back(coords[coord_index]);
+						bufferData.push_back(coords[coord_index + 1]);
+						bufferData.push_back(coords[coord_index + 2]);
+
+						bufferData.push_back(normals[normal_index]);
+						bufferData.push_back(normals[normal_index + 1]);
+						bufferData.push_back(normals[normal_index + 2]);
+                    }
+                    else
+                    {
+                        vertexIndex = it->second;
+                    }
+					std::cout << "vertexIndex: " << vertexIndex << std::endl;
+                    q_indices.push_back(vertexIndex );
                 }
             }
         }
     }
 
+	std::cout << " index size:" << q_indices.size() << std::endl;
+	std::cout << " maxV: " << maxV << ", maxN: " << maxN << std::endl; 
+	std::cout << " minV: " << minV << ", minN: " << minN << std::endl;
     A3DTess3DGet( nullptr, &t3dd );
     A3DTessBaseGet( nullptr, &tbd );
-
+    int nNum = bufferData.size();
+    int vertexCount = (nNum / 6); // each vertex has 6 floats: px,py,pz,nx,ny,nz
     auto buf = new Qt3DRender::QBuffer();
-    buf->setData( bufferBytes );
+    QByteArray tempArray(nNum * sizeof(float), 0);
+    if (nNum > 0) {
+        // copy float data into the QByteArray backing the GPU buffer
+        memcpy(tempArray.data(), reinterpret_cast<const char*>(bufferData.data()), nNum * sizeof(float));
+    }
+    buf->setData(tempArray);
     auto geometry = new QGeometry;
-    auto position_attribute = new QAttribute( buf, QAttribute::defaultPositionAttributeName(), QAttribute::Float, 3, q_indices.size(), 0, stride );
-    geometry->addAttribute( position_attribute );
+    // pass vertexCount (number of vertices), not number of floats
+    auto position_attribute = new QAttribute(buf, QAttribute::defaultPositionAttributeName(), QAttribute::Float, 3, vertexCount, 0, stride);
+    geometry->addAttribute(position_attribute);
 
-    auto normal_attribute = new QAttribute( buf, QAttribute::defaultNormalAttributeName(), QAttribute::Float, 3, q_indices.size(), sizeof(float) * 3, stride );
-    geometry->addAttribute( normal_attribute );
+    auto normal_attribute = new QAttribute(buf, QAttribute::defaultNormalAttributeName(), QAttribute::Float, 3, vertexCount, sizeof(float) * 3, stride);
+    geometry->addAttribute(normal_attribute);
 
     QByteArray indexBytes;
     QAttribute::VertexBaseType ty;
@@ -107,6 +173,7 @@ Qt3DCore::QComponent *createMesh( A3DTessBase *tess_base ) {
 
     auto renderer = new Qt3DRender::QGeometryRenderer();
     renderer->setGeometry( geometry );
+    QGeometryRenderer::PrimitiveType pType = renderer->primitiveType();
 
     return renderer;
 }

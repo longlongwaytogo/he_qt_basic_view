@@ -112,9 +112,13 @@ int main(int argc, char *argv[]) {
     // Add camera controls
     Qt3DExtras::QOrbitCameraController *camController = new Qt3DExtras::QOrbitCameraController(scene);
     // Increase interaction speeds (pan/zoom and rotation) for a snappier feel
-    float scale = qMax(1.0f, 2.0f); // 防止太小
-    camController->setLinearSpeed( scale * 200.0f );   // 平移/缩放速度
-    camController->setLookSpeed(  scale * 360.0f );    // 旋转速度
+    //float scale = qMax(1.0f, 2.0f); // 防止太小
+    //camController->setLinearSpeed( scale * 200.0f );   // 平移/缩放速度
+    //camController->setLookSpeed(  scale * 360.0f );    // 旋转速度
+
+    camController->setLinearSpeed(50.0f);
+    camController->setLookSpeed(180.0f);
+
     camController->setCamera(camera);
 
     view.show();
