@@ -11,6 +11,7 @@ Qt3DCore::QEntity *createScene( A3DAsmModelFile *model_file ) {
     A3DRWParamsTessellationData tess_params;
     A3D_INITIALIZE_DATA( A3DRWParamsTessellationData, tess_params );
     tess_params.m_eTessellationLevelOfDetail = kA3DTessLODMedium;
+   // tess_params.m_bKeepUVPoints = A3D_TRUE;
 
     forEach_RepresentationItem(model_file, [&](EntityArray const &path) {
         CascadedAttributes ca( path );
